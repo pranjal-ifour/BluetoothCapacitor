@@ -1,0 +1,5 @@
+{
+  "appId": "com.example.bluetoothapp",
+  "appName": "BluetoothApp",
+  "webDir": "dist"
+}
