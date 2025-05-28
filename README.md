@@ -42,3 +42,20 @@ npx cap sync
 
 # 6. Open Android project in Android Studio
 npx cap open android
+
+
+## 🍏 Run on iOS
+
+> ⚠️ iOS requires a Mac with Xcode installed.
+
+### 1. Install iOS platform
+
+```bash
+npx cap add ios
+npx cap sync
+npx cap open ios
+
+<key>NSBluetoothAlwaysUsageDescription</key>
+<string>This app needs Bluetooth to connect to nearby devices.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Location is needed to scan for Bluetooth devices.</string>
