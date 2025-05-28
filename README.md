@@ -55,7 +55,4 @@ npx cap add ios
 npx cap sync
 npx cap open ios
 
-<key>NSBluetoothAlwaysUsageDescription</key>
-<string>This app needs Bluetooth to connect to nearby devices.</string>
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>Location is needed to scan for Bluetooth devices.</string>
+
