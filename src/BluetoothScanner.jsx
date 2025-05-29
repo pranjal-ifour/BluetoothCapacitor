@@ -4,8 +4,10 @@ import { BluetoothLe, BleClient } from '@capacitor-community/bluetooth-le';
 function BluetoothScanner() {
 	const [devices, setDevices] = useState([]);
 	const [isScanning, setIsScanning] = useState(false);
+	const [isReadingData, setIsReadingData] = useState(false);
 	const [pairingDeviceId, setPairingDeviceId] = useState(null);
 	const [connectedDevices, setConnectedDevices] = useState([]);
+	const [readData, setReadData] = useState([]);
 
 	const initBluetooth = async () => {
 		await BluetoothLe.initialize();
@@ -25,11 +27,31 @@ function BluetoothScanner() {
 		setIsScanning(true);
 		try {
 			await BleClient.initialize();
-			await BleClient.requestLEScan({}, (device) => {
-				setDevices((prev) => {
-					const exists = prev.some((d) => d.device.deviceId === device.device.deviceId);
-					return exists ? prev : [...prev, device];
-				});
+			// to scan for all devices
+			// await BleClient.requestLEScan({}, (device) => {
+			// 	setDevices((prev) => {
+			// 		const exists = prev.some((d) => d.device.deviceId === device.device.deviceId);
+			// 		return exists ? prev : [...prev, device];
+			// 	});
+			// });
+
+			// to scan for all devices and connect with particular device automatically
+			await BleClient.requestLEScan({}, async (device) => {
+				const alreadyExists = devices.some((d) => d.device.deviceId === device.device.deviceId);
+				if (!alreadyExists) {
+					setDevices((prev) => [...prev, device]);
+				}
+
+				if (device?.device?.name === 'Evolve3_4260') {
+					console.log('🔍 Auto-connecting to Evolve3_4260...');
+					await BleClient.stopLEScan();
+					setIsScanning(false);
+
+					// Delay slightly to ensure device is ready
+					setTimeout(() => {
+						connectToDevice(device.device.deviceId, device.device.name);
+					}, 500);
+				}
 			});
 
 			setTimeout(async () => {
@@ -46,17 +68,6 @@ function BluetoothScanner() {
 		scanDevices();
 	}, []);
 
-	const requestPermissions = async () => {
-		try {
-			initBluetooth();
-			const result = await BluetoothLe.requestPermissions();
-
-			console.log('Permissions result:', result);
-		} catch (error) {
-			console.error('Permission error:', error);
-		}
-	};
-
 	const connectToDevice = async (deviceId, deviceName) => {
 		try {
 			if (pairingDeviceId) return;
@@ -64,7 +75,6 @@ function BluetoothScanner() {
 			const isAlreadyConnected = connectedDevices.some((d) => d.id === deviceId);
 
 			if (isAlreadyConnected) {
-				// Disconnect logic
 				try {
 					await BluetoothLe.disconnect({ deviceId });
 					setConnectedDevices((prev) => prev.filter((d) => d.id !== deviceId));
@@ -80,7 +90,6 @@ function BluetoothScanner() {
 			const result = await BluetoothLe.connect({ deviceId });
 			console.log('Connected to:', result);
 			setConnectedDevices((prev) => [...prev, { id: deviceId, name: deviceName || deviceId }]);
-			alert(`Connected to device: ${deviceName}`);
 			setPairingDeviceId(null);
 		} catch (error) {
 			console.error('Connection failed:', error);
@@ -89,24 +98,110 @@ function BluetoothScanner() {
 		}
 	};
 
-	return (
-		<div style={{ padding: 20, fontFamily: 'Roboto, sans-serif', background: '#f2f2f2', minHeight: '100vh' }}>
-			<h2 style={{ color: '#333', fontSize: 24, marginBottom: 20 }}>Bluetooth Scanner</h2>
+	const handleRead = async () => {
+		if (connectedDevices.length === 0) {
+			alert('No devices connected. Please connect to a device first.');
+			return;
+		}
+		setIsReadingData(true);
+		const deviceId = connectedDevices[0].id; // Read from the first connected device
+		const { services } = await BluetoothLe.getServices({ deviceId });
 
-			<div style={{ display: 'flex', gap: 10, marginBottom: 30 }}>
+		if (services.length === 0) {
+			alert('No services found on the connected device.');
+			return;
+		}
+
+		await readAllFromGetServices(deviceId, services);
+	};
+
+	const readAllFromGetServices = async (deviceId, services) => {
+		const results = [];
+
+		for (const service of services) {
+			const serviceUUID = service.uuid;
+
+			for (const characteristic of service.characteristics) {
+				const charUUID = characteristic.uuid;
+				const props = characteristic.properties;
+				console.log('props.read', props.read);
+				if (props.read) {
+					try {
+						const result = await BluetoothLe.read({
+							deviceId,
+							service: serviceUUID,
+							characteristic: charUUID,
+						});
+
+						if (result?.value) {
+							console.log('text', result?.value);
+
+							results.push({
+								serviceUUID,
+								charUUID,
+								value: result?.value,
+							});
+						} else {
+							results.push({
+								serviceUUID,
+								charUUID,
+								value: '[No data]',
+							});
+						}
+					} catch (err) {
+						results.push({
+							serviceUUID,
+							charUUID,
+							value: `[Error: ${err.message}]`,
+						});
+					}
+				} else {
+					if (serviceUUID.includes('180d')) {
+						await BluetoothLe.startNotifications(
+							{
+								deviceId,
+								service: serviceUUID,
+								characteristic: charUUID,
+							},
+							(result) => {
+								const valueBytes = Uint8Array.from(atob(result.value), (c) => c.charCodeAt(0));
+								const heartRate = valueBytes[1]; // Usually in byte 1 or 2 depending on flags
+								console.log('❤️ Heart Rate:', heartRate);
+								results.push({
+									serviceUUID,
+									charUUID,
+									value: heartRate,
+								});
+							}
+						);
+					}
+				}
+			}
+		}
+
+		// Update UI
+		console.log('serviecs =>', results);
+		setIsReadingData(false);
+		setReadData(results);
+	};
+
+	return (
+		<div style={{ fontFamily: 'Roboto, sans-serif', background: '#fff', minHeight: '100vh', textAlign: 'start' }}>
+			<h2 style={{ color: '#333', fontSize: 24, marginBottom: 20, textAlign: 'center' }}>Bluetooth Scanner</h2>
+
+			<div style={{ display: 'flex', gap: 10, marginBottom: 30, justifyContent: 'center' }}>
 				<button
-					onClick={requestPermissions}
 					style={{
 						padding: '10px 16px',
-						backgroundColor: '#1976d2',
+						backgroundColor: '#4da6ff',
 						color: 'white',
 						border: 'none',
 						borderRadius: 6,
 						cursor: 'pointer',
-					}}>
-					Request Permission
+					}}
+					onClick={handleRead}>
+					{isReadingData ? 'Reading...' : 'Read Data'}
 				</button>
-
 				<button
 					onClick={scanDevices}
 					style={{
@@ -121,13 +216,36 @@ function BluetoothScanner() {
 				</button>
 			</div>
 
+			{readData?.length > 0 && (
+				<div>
+					<h2 style={{ fontWeight: 'bold', fontSize: '18px' }}>Read Characteristics: {connectedDevices[0].name}</h2>
+					{readData.map((item, index) => (
+						<div key={index} style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>
+							<p>
+								🔧 <strong>Service:</strong> {item.serviceUUID}
+							</p>
+							<p>
+								📍 <strong>Characteristic:</strong> {item.charUUID}
+							</p>
+							<p>
+								📦 <strong>Value:</strong> {item.value}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
 			<h3 style={{ fontSize: 20, color: '#555', marginBottom: 10 }}>📱 Devices Found:</h3>
 			{isScanning && <div style={{ marginTop: 30, textAlign: 'center', color: '#888', position: 'relative', bottom: 10 }}>🔄 Scanning for devices...</div>}
-
 			<ul style={{ padding: 0 }}>
 				{devices.length === 0 && !isScanning && <p style={{ color: '#999' }}>No devices found yet.</p>}
 				{devices
 					.filter((d) => d.device?.name)
+					.sort((a, b) => {
+						const aConnected = connectedDevices?.some((dev) => dev.id === a.device.deviceId);
+						const bConnected = connectedDevices?.some((dev) => dev.id === b.device.deviceId);
+						return aConnected === bConnected ? 0 : aConnected ? -1 : 1;
+					})
 					.map((d, i) => {
 						const isConnecting = pairingDeviceId === d.device.deviceId;
 						const isConnected = connectedDevices.some((dev) => dev.id === d.device.deviceId);
@@ -139,7 +257,7 @@ function BluetoothScanner() {
 								style={{
 									listStyleType: 'none',
 									marginBottom: 10,
-									backgroundColor: 'white',
+									backgroundColor: '#f2f2f2',
 									padding: 15,
 									borderRadius: 8,
 									boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
