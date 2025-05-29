@@ -9,11 +9,14 @@ function BluetoothScanner() {
 	const [connectedDevices, setConnectedDevices] = useState([]);
 	const [readData, setReadData] = useState([]);
 
+	// Initialize Bluetooth LE
 	const initBluetooth = async () => {
 		await BluetoothLe.initialize();
 		console.log('Bluetooth initialized');
 	};
 
+	// Initialize Bluetooth on component mount
+	// This will also stop any ongoing scans when the component unmounts
 	useEffect(() => {
 		initBluetooth();
 
@@ -22,8 +25,11 @@ function BluetoothScanner() {
 		};
 	}, []);
 
+	// Function to scan for devices
+	// This will scan for devices and automatically connect to a specific device if found
 	const scanDevices = async () => {
 		setDevices([]);
+		setReadData([]);
 		setIsScanning(true);
 		try {
 			await BleClient.initialize();
@@ -64,10 +70,13 @@ function BluetoothScanner() {
 		}
 	};
 
+	// Automatically scan for devices on component mount
 	useEffect(() => {
 		scanDevices();
 	}, []);
 
+	// Function to connect to a device
+	// If already connected, it will disconnect
 	const connectToDevice = async (deviceId, deviceName) => {
 		try {
 			if (pairingDeviceId) return;
@@ -90,6 +99,7 @@ function BluetoothScanner() {
 			const result = await BluetoothLe.connect({ deviceId });
 			console.log('Connected to:', result);
 			setConnectedDevices((prev) => [...prev, { id: deviceId, name: deviceName || deviceId }]);
+			await readDeviceInfo(deviceId);
 			setPairingDeviceId(null);
 		} catch (error) {
 			console.error('Connection failed:', error);
@@ -98,6 +108,7 @@ function BluetoothScanner() {
 		}
 	};
 
+	// Function to read data from connected devices
 	const handleRead = async () => {
 		if (connectedDevices.length === 0) {
 			alert('No devices connected. Please connect to a device first.');
@@ -115,6 +126,7 @@ function BluetoothScanner() {
 		await readAllFromGetServices(deviceId, services);
 	};
 
+	// Function to read all characteristics from the services of a connected device
 	const readAllFromGetServices = async (deviceId, services) => {
 		const results = [];
 
@@ -124,7 +136,6 @@ function BluetoothScanner() {
 			for (const characteristic of service.characteristics) {
 				const charUUID = characteristic.uuid;
 				const props = characteristic.properties;
-				console.log('props.read', props.read);
 				if (props.read) {
 					try {
 						const result = await BluetoothLe.read({
@@ -183,6 +194,37 @@ function BluetoothScanner() {
 		console.log('serviecs =>', results);
 		setIsReadingData(false);
 		setReadData(results);
+	};
+
+	// Function to read device information (Manufacturer, Model, Serial Number)
+	const readDeviceInfo = async (deviceId) => {
+		const characteristics = {
+			manufacturer: '00002a29-0000-1000-8000-00805f9b34fb', // Replace with Manufacturer Name String starts with 0x2A29
+			model: '00002a24-0000-1000-8000-00805f9b34fb', // Replace with Manufacturer Name String starts with 0x2A24
+			serial: '00002a25-0000-1000-8000-00805f9b34fb', // Replace with Manufacturer Name String starts with 0x2A25
+		};
+
+		const service = '0000180a-0000-1000-8000-00805f9b34fb'; // Replace with Device Information Service UUID starts with 0x180A
+
+		// Read characteristics from the Device Information Service
+		const readCharacteristic = async (charUUID) => {
+			try {
+				const result = await BluetoothLe.read({ deviceId, service, characteristic: charUUID });
+				return result.value;
+			} catch {
+				return '[Read Failed]';
+			}
+		};
+
+		const manufacturer = await readCharacteristic(characteristics.manufacturer);
+		const model = await readCharacteristic(characteristics.model);
+		const serial = await readCharacteristic(characteristics.serial);
+
+		console.log('manufacturer', manufacturer);
+		console.log('model', model);
+		console.log('serial', serial);
+
+		return { manufacturer, model, serial };
 	};
 
 	return (
