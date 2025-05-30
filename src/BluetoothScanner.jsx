@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BluetoothLe, BleClient } from '@capacitor-community/bluetooth-le';
+import './BluetoothScanner.css';
 
 function BluetoothScanner() {
 	const [devices, setDevices] = useState([]);
@@ -228,58 +229,43 @@ function BluetoothScanner() {
 	};
 
 	return (
-		<div style={{ fontFamily: 'Roboto, sans-serif', background: '#fff', minHeight: '100vh', textAlign: 'start' }}>
-			<h2 style={{ color: '#333', fontSize: 24, marginBottom: 20, textAlign: 'center' }}>Bluetooth Scanner</h2>
+		<div className='container'>
+			<h2>Bluetooth Scanner</h2>
 
-			<div style={{ display: 'flex', gap: 10, marginBottom: 30, justifyContent: 'center' }}>
-				<button
-					style={{
-						padding: '10px 16px',
-						backgroundColor: '#4da6ff',
-						color: 'white',
-						border: 'none',
-						borderRadius: 6,
-						cursor: 'pointer',
-					}}
-					onClick={handleRead}>
+			<div className='button-group'>
+				<button className='button read' onClick={handleRead}>
 					{isReadingData ? 'Reading...' : 'Read Data'}
 				</button>
-				<button
-					onClick={scanDevices}
-					style={{
-						padding: '10px 16px',
-						backgroundColor: '#43a047',
-						color: 'white',
-						border: 'none',
-						borderRadius: 6,
-						cursor: 'pointer',
-					}}>
+				<button className='button scan' onClick={scanDevices}>
 					{isScanning ? 'Scanning...' : 'Start Scan'}
 				</button>
 			</div>
 
 			{readData?.length > 0 && (
-				<div>
-					<h2 style={{ fontWeight: 'bold', fontSize: '18px' }}>Read Characteristics: {connectedDevices[0].name}</h2>
+				<div className='read-section'>
+					<h2 className='read-header'>
+						Read Characteristics: <br />
+						{connectedDevices[0].name}
+					</h2>
 					{readData.map((item, index) => (
-						<div key={index} style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>
-							<p>
-								🔧 <strong>Service:</strong> {item.serviceUUID}
-							</p>
-							<p>
-								📍 <strong>Characteristic:</strong> {item.charUUID}
-							</p>
-							<p>
-								📦 <strong>Value:</strong> {item.value}
-							</p>
+						<div className='read-items' key={index}>
+							<span className='read-item'>
+								🔧 <strong>Service:</strong> <br /> {item.serviceUUID}
+							</span>
+							<span className='read-item'>
+								📍 <strong>Characteristic:</strong> <br /> {item.charUUID}
+							</span>
+							<span className='read-item'>
+								📦 <strong>Value:</strong> <br /> {item.value}
+							</span>
 						</div>
 					))}
 				</div>
 			)}
 
-			<h3 style={{ fontSize: 20, color: '#555', marginBottom: 10 }}>📱 Devices Found:</h3>
-			{isScanning && <div style={{ marginTop: 30, textAlign: 'center', color: '#888', position: 'relative', bottom: 10 }}>🔄 Scanning for devices...</div>}
-			<ul style={{ padding: 0 }}>
+			<h3 className='device-list-title'>📱 Devices Found:</h3>
+			{isScanning && <div className='scanning-status'>🔄 Scanning for devices...</div>}
+			<ul className='device-list'>
 				{devices.length === 0 && !isScanning && <p style={{ color: '#999' }}>No devices found yet.</p>}
 				{devices
 					.filter((d) => d.device?.name)
@@ -293,39 +279,15 @@ function BluetoothScanner() {
 						const isConnected = connectedDevices.some((dev) => dev.id === d.device.deviceId);
 
 						return (
-							<li
-								key={i}
-								onClick={() => !isConnecting && connectToDevice(d.device.deviceId, d.device?.name)}
-								style={{
-									listStyleType: 'none',
-									marginBottom: 10,
-									backgroundColor: '#f2f2f2',
-									padding: 15,
-									borderRadius: 8,
-									boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
-									display: 'flex',
-									gap: 10,
-									cursor: isConnecting || isConnected ? 'default' : 'pointer',
-									opacity: isConnecting ? 0.6 : 1,
-								}}>
-								<div
-									style={{
-										display: 'flex',
-										flexDirection: 'column',
-										justifyContent: 'flex-start',
-										alignItems: 'flex-start',
-									}}>
-									<div style={{ fontWeight: 'bold', color: isConnected ? '#2e7d32' : '#000', alignItems: 'flex-start' }}>{d.device?.name || 'Unnamed Device'}</div>
-									<div
-										style={{
-											display: 'flex',
-											flexDirection: 'row',
-											justifyContent: 'space-between',
-											alignItems: 'center',
-											gap: 20,
-										}}>
-										<div style={{ fontSize: 14, color: '#666', alignItems: 'flex-start', flex: 1, textAlign: 'left' }}>{d.device.deviceId}</div>
-										<div style={{ fontWeight: 'bold', color: isConnected ? '#2e7d32' : '#555', alignItems: 'flex-end', flex: 1, textAlign: 'right' }}>{isConnected ? 'Connected' : isConnecting ? 'Pairing…' : ' '}</div>
+							<li key={i} className={`device-item ${isConnecting ? 'connecting' : ''}`} onClick={() => !isConnecting && !isConnected && connectToDevice(d.device.deviceId, d.device.name)} style={{ cursor: isConnecting || isConnected ? 'default' : 'pointer' }}>
+								<div className='device-info'>
+									<div className={`device-name ${isConnected ? 'connected' : ''}`}>{d.device.name}</div>
+
+									<div className='device-meta'>
+										<span className='device-id'>{d.device.deviceId}</span>
+										<div className='device-status-wrapper'>
+											<span className={`device-status ${isConnected ? 'connected' : ''}`}>{isConnected ? 'Connected' : isConnecting ? 'Pairing…' : ''}</span>
+										</div>
 									</div>
 								</div>
 							</li>
