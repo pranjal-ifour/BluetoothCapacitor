@@ -1,10 +1,15 @@
 # ArgusConsumerApp
 
 **Display Name:** Argus
+
 **Platform:** React Native (Android & iOS)
+
 **React Native Version:** 0.81.x
+
 **GitHub Repository:** [argus-consumer-app](https://github.com/KOS-INC/argus-consumer-app)
+
 **Primary Branch:** `dev`
+
 **Node Requirement:** >= 20
 
 ---
