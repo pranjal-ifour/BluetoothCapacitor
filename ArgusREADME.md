@@ -364,43 +364,8 @@ For more troubleshooting tips, see the [React Native Troubleshooting Guide](http
 
 ---
 
-## Learn More
-
-### React Native Resources
-
-- [React Native Website](https://reactnative.dev) - Official documentation
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - Environment setup guide
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - Guided tour of React Native basics
-- [React Native Blog](https://reactnative.dev/blog) - Latest updates and announcements
-- [GitHub Repository](https://github.com/facebook/react-native) - Open source React Native code
-
-### Project-Specific Resources
-
-- [React Navigation Docs](https://reactnavigation.org/docs/getting-started)
-- [react-native-ble-plx](https://github.com/dotintent/react-native-ble-plx) - BLE library documentation
-- [React Query Docs](https://tanstack.com/query/latest) - Data fetching and state management
-
----
-
-## Development Guidelines
-
-### Fast Refresh
-
-When you save changes to your code, the app automatically updates via Fast Refresh. To force a full reload:
-
-- **Android:** Press <kbd>R</kbd> twice or <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) / <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS) to open Dev Menu
-- **iOS:** Press <kbd>R</kbd> in iOS Simulator
-
-### Code Quality
-
-- Follow TypeScript best practices
-- Write tests for critical functionality
-- Use ESLint and Prettier for code formatting
-- Review patches before updating dependencies
-
----
-
 **Document Owner:** Development Team
+
 **Last Updated:** February 2026
 
 ---
